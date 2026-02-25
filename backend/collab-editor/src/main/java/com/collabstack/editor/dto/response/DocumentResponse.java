@@ -10,6 +10,7 @@ public record DocumentResponse(
         Long currentRevision,
         String ownerUsername,
         int collaboratorCount,
+        String userRole,  // OWNER, EDITOR, or VIEWER
         Instant createdAt,
         Instant updatedAt
 ) {}

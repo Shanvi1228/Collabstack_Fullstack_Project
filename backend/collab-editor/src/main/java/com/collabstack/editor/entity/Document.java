@@ -44,6 +44,9 @@ public class Document {
     @EqualsAndHashCode.Exclude
     private Set<DocumentCollaborator> collaborators = new HashSet<>();
 
+    @Column(name = "share_token", unique = true)
+    private String shareToken;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;

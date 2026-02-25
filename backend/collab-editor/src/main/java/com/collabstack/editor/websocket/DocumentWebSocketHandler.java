@@ -1,8 +1,11 @@
 package com.collabstack.editor.websocket;
 
+import com.collabstack.editor.dto.websocket.CursorMessage;
 import com.collabstack.editor.dto.websocket.OperationMessage;
+import com.collabstack.editor.dto.websocket.PresenceListMessage;
 import com.collabstack.editor.dto.websocket.PresenceMessage;
 import com.collabstack.editor.dto.websocket.SyncMessage;
+import com.collabstack.editor.entity.CollaboratorRole;
 import com.collabstack.editor.entity.Document;
 import com.collabstack.editor.repository.DocumentCollaboratorRepository;
 import com.collabstack.editor.repository.DocumentRepository;
@@ -19,6 +22,7 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -87,19 +91,37 @@ public class DocumentWebSocketHandler extends TextWebSocketHandler {
                 .map(u -> u.getUsername())
                 .orElse("unknown");
 
+        // Determine the user's role for this document
+        String userRole;
+        if (isOwner) {
+            userRole = "OWNER";
+        } else {
+            userRole = collaboratorRepository.findByDocument_IdAndUser_Id(documentId, userId)
+                    .map(collab -> collab.getRole().name())
+                    .orElse("VIEWER");
+        }
+
         // Store metadata on the session for later retrieval
         session.getAttributes().put("docId", documentId);
         session.getAttributes().put("userId", userId.toString());
         session.getAttributes().put("username", username);
+        session.getAttributes().put("userRole", userRole);
 
         // Get or create collaborative session
         DocumentSession docSession = sessionManager.getOrCreate(
                 documentId, document.getContentSnapshot(), document.getCurrentRevision());
         docSession.addSession(session.getId(), session, userId.toString(), username);
 
-        // Send SYNC to the new client
-        SyncMessage sync = new SyncMessage("SYNC", docSession.getCurrentContent(), docSession.getRevision());
+        // Send SYNC to the new client (includes user's role)
+        SyncMessage sync = new SyncMessage("SYNC", docSession.getCurrentContent(), docSession.getRevision(), userRole);
         session.sendMessage(new TextMessage(objectMapper.writeValueAsString(sync)));
+
+        // Send the list of currently connected users to the new client
+        List<PresenceListMessage.PresenceUser> userList = docSession.getAllConnectedUsers().stream()
+                .map(u -> new PresenceListMessage.PresenceUser(u.userId(), u.username()))
+                .toList();
+        PresenceListMessage presenceList = new PresenceListMessage("PRESENCE_LIST", userList);
+        session.sendMessage(new TextMessage(objectMapper.writeValueAsString(presenceList)));
 
         // Broadcast JOIN presence to all OTHER connected clients
         PresenceMessage join = new PresenceMessage("PRESENCE", userId.toString(), username, "JOIN");
@@ -113,6 +135,7 @@ public class DocumentWebSocketHandler extends TextWebSocketHandler {
         UUID documentId = (UUID) session.getAttributes().get("docId");
         String userId = (String) session.getAttributes().get("userId");
         String username = (String) session.getAttributes().get("username");
+        String userRole = (String) session.getAttributes().get("userRole");
 
         if (documentId == null || userId == null) {
             session.close(CloseStatus.BAD_DATA);
@@ -121,6 +144,29 @@ public class DocumentWebSocketHandler extends TextWebSocketHandler {
 
         DocumentSession docSession = sessionManager.get(documentId);
         if (docSession == null) {
+            return;
+        }
+
+        // Peek at the raw JSON to determine message type
+        com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(message.getPayload());
+        String messageType = root.has("type") ? root.get("type").asText() : "";
+
+        // Viewers cannot send OPERATION or CURSOR messages
+        if ("VIEWER".equals(userRole) && ("OPERATION".equals(messageType) || "CURSOR".equals(messageType))) {
+            log.warn("Viewer {} attempted to send {} on document {} — rejected", userId, messageType, documentId);
+            return;
+        }
+
+        // Handle CURSOR messages — just relay to others
+        if ("CURSOR".equals(messageType)) {
+            CursorMessage cursor = new CursorMessage(
+                    "CURSOR",
+                    userId,
+                    username,
+                    root.has("from") ? root.get("from").asInt() : 0,
+                    root.has("to") ? root.get("to").asInt() : 0
+            );
+            docSession.broadcastToOthers(objectMapper.writeValueAsString(cursor), session.getId());
             return;
         }
 

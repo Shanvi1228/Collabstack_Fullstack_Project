@@ -16,4 +16,6 @@ public interface DocumentService {
     void delete(UUID documentId, UUID userId);
     CollaboratorResponse addCollaborator(UUID documentId, UUID ownerUserId, AddCollaboratorRequest request);
     List<CollaboratorResponse> getCollaborators(UUID documentId, UUID userId);
+    String generateShareToken(UUID documentId, UUID ownerUserId);
+    DocumentResponse joinViaShareToken(String shareToken, UUID userId);
 }

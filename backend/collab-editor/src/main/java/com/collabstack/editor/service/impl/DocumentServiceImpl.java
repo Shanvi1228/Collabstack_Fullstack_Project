@@ -6,6 +6,7 @@ import com.collabstack.editor.dto.response.CollaboratorResponse;
 import com.collabstack.editor.dto.response.DocumentResponse;
 import com.collabstack.editor.entity.Document;
 import com.collabstack.editor.entity.DocumentCollaborator;
+import com.collabstack.editor.entity.CollaboratorRole;
 import com.collabstack.editor.entity.User;
 import com.collabstack.editor.exception.ConflictException;
 import com.collabstack.editor.exception.ResourceNotFoundException;
@@ -63,7 +64,14 @@ public class DocumentServiceImpl implements DocumentService {
     public DocumentResponse findById(UUID documentId, UUID requestingUserId) {
         Document document = getDocumentOrThrow(documentId);
         assertAccess(document, requestingUserId);
-        return documentMapper.toResponse(document);
+        DocumentResponse response = documentMapper.toResponse(document);
+        String userRole = resolveUserRole(document, requestingUserId);
+        return new DocumentResponse(
+                response.id(), response.title(), response.contentSnapshot(),
+                response.currentRevision(), response.ownerUsername(),
+                response.collaboratorCount(), userRole,
+                response.createdAt(), response.updatedAt()
+        );
     }
 
     @Override
@@ -132,6 +140,49 @@ public class DocumentServiceImpl implements DocumentService {
         return collaborators.stream().map(documentMapper::toCollaboratorResponse).toList();
     }
 
+    @Override
+    @Transactional
+    public String generateShareToken(UUID documentId, UUID ownerUserId) {
+        Document document = getDocumentOrThrow(documentId);
+        assertOwner(document, ownerUserId);
+        if (document.getShareToken() == null || document.getShareToken().isBlank()) {
+            String token = UUID.randomUUID().toString().replace("-", "");
+            document.setShareToken(token);
+            documentRepository.save(document);
+        }
+        return document.getShareToken();
+    }
+
+    @Override
+    @Transactional
+    public DocumentResponse joinViaShareToken(String shareToken, UUID userId) {
+        Document document = documentRepository.findByShareToken(shareToken)
+                .orElseThrow(() -> new ResourceNotFoundException("Invalid or expired share link"));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+
+        // Owner is already a member
+        if (document.getOwner().getId().equals(userId)) {
+            return documentMapper.toResponse(document);
+        }
+
+        // Already a collaborator — just return doc
+        if (collaboratorRepository.existsByDocument_IdAndUser_Id(document.getId(), userId)) {
+            return documentMapper.toResponse(document);
+        }
+
+        // Add as EDITOR collaborator
+        DocumentCollaborator collaborator = DocumentCollaborator.builder()
+                .document(document)
+                .user(user)
+                .role(CollaboratorRole.EDITOR)
+                .build();
+        collaboratorRepository.save(collaborator);
+        log.info("User {} joined document {} via share token", userId, document.getId());
+        return documentMapper.toResponse(document);
+    }
+
     // --- helpers ---
 
     private Document getDocumentOrThrow(UUID documentId) {
@@ -152,5 +203,14 @@ public class DocumentServiceImpl implements DocumentService {
         if (!isOwner && !isCollaborator) {
             throw new UnauthorizedException("You do not have access to this document");
         }
+    }
+
+    private String resolveUserRole(Document document, UUID userId) {
+        if (document.getOwner().getId().equals(userId)) {
+            return "OWNER";
+        }
+        return collaboratorRepository.findByDocument_IdAndUser_Id(document.getId(), userId)
+                .map(collab -> collab.getRole().name())
+                .orElse("VIEWER");
     }
 }

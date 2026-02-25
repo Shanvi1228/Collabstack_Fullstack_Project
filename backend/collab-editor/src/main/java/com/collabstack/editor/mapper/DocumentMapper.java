@@ -14,6 +14,7 @@ public interface DocumentMapper {
 
     @Mapping(source = "owner.username", target = "ownerUsername")
     @Mapping(expression = "java(document.getCollaborators().size())", target = "collaboratorCount")
+    @Mapping(target = "userRole", ignore = true)
     DocumentResponse toResponse(Document document);
 
     List<DocumentResponse> toResponseList(List<Document> documents);

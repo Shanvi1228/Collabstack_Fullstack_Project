@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { chatWithDocument } from '../api/documents.api';
 
 interface ChatSidebarProps {
@@ -66,13 +68,14 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ documentId }) => {
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div
-              className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                msg.role === 'user'
+              className={`max-w-[80%] rounded-lg px-4 py-2 ${msg.role === 'user'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-900'
-              }`}
+                }`}
             >
-              <p className="text-sm">{msg.content}</p>
+              <div className="text-sm prose prose-sm max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-pre:my-2 prose-code:bg-gray-200 prose-code:px-1 prose-code:rounded">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+              </div>
               {msg.snippets && msg.snippets.length > 0 && (
                 <div className="mt-2">
                   <button

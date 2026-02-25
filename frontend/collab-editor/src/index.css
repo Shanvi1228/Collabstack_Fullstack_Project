@@ -65,3 +65,22 @@
 .ProseMirror blockquote {
   @apply border-l-4 border-gray-300 pl-4 italic my-2;
 }
+
+/* Remote cursor styles */
+.remote-cursor {
+  display: inline;
+  pointer-events: none;
+}
+
+.remote-cursor-label {
+  animation: fadeIn 0.15s ease-in;
+}
+
+.remote-selection {
+  transition: background-color 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

@@ -2,28 +2,10 @@ import React from 'react';
 
 interface CollaboratorBadgeProps {
   username: string;
+  color?: string;
 }
 
-const CollaboratorBadge: React.FC<CollaboratorBadgeProps> = ({ username }) => {
-  // Generate a consistent color based on username
-  const getColorFromUsername = (name: string): string => {
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const colors = [
-      'bg-red-500',
-      'bg-blue-500',
-      'bg-green-500',
-      'bg-yellow-500',
-      'bg-purple-500',
-      'bg-pink-500',
-      'bg-indigo-500',
-      'bg-teal-500',
-    ];
-    return colors[Math.abs(hash) % colors.length];
-  };
-
+const CollaboratorBadge: React.FC<CollaboratorBadgeProps> = ({ username, color }) => {
   const getInitials = (name: string): string => {
     return name
       .split(' ')
@@ -33,13 +15,14 @@ const CollaboratorBadge: React.FC<CollaboratorBadgeProps> = ({ username }) => {
       .slice(0, 2);
   };
 
-  const colorClass = getColorFromUsername(username);
   const initials = getInitials(username);
+  const bgStyle = color ? { backgroundColor: color } : undefined;
 
   return (
     <div className="flex items-center space-x-2">
       <div
-        className={`w-8 h-8 rounded-full ${colorClass} flex items-center justify-center text-white text-xs font-semibold`}
+        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold"
+        style={bgStyle}
         title={username}
       >
         {initials}

@@ -93,4 +93,22 @@ public class DocumentController {
         List<CollaboratorResponse> collaborators = documentService.getCollaborators(id, principal.getId());
         return ResponseEntity.ok(ApiResponse.ok(collaborators));
     }
+
+    @PostMapping("/{id}/share")
+    @Operation(summary = "Generate a share token for a document (owner only)")
+    public ResponseEntity<ApiResponse<String>> generateShareToken(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        String token = documentService.generateShareToken(id, principal.getId());
+        return ResponseEntity.ok(ApiResponse.ok("Share token generated", token));
+    }
+
+    @PostMapping("/join/{shareToken}")
+    @Operation(summary = "Join a document via share token")
+    public ResponseEntity<ApiResponse<DocumentResponse>> joinViaShareToken(
+            @PathVariable String shareToken,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        DocumentResponse response = documentService.joinViaShareToken(shareToken, principal.getId());
+        return ResponseEntity.ok(ApiResponse.ok("Joined document", response));
+    }
 }

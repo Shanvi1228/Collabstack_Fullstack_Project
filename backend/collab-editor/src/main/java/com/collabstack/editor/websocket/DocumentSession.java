@@ -8,6 +8,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -44,7 +45,10 @@ public class DocumentSession {
      * @return the new document content after apply
      */
     public synchronized String applyOperation(OperationMessage op) {
-        if (op.opType() == OperationType.INSERT && op.content() != null) {
+        if (op.opType() == OperationType.REPLACE && op.content() != null) {
+            // Full content replacement — used by the rich-text editor
+            currentContent = op.content();
+        } else if (op.opType() == OperationType.INSERT && op.content() != null) {
             int pos = Math.min(Math.max(op.position(), 0), currentContent.length());
             currentContent = currentContent.substring(0, pos)
                     + op.content()
@@ -80,6 +84,15 @@ public class DocumentSession {
 
     public UserInfo getUserInfo(String sessionId) {
         return sessionUsers.get(sessionId);
+    }
+
+    /**
+     * Returns all currently connected users (de-duplicated by userId).
+     */
+    public List<UserInfo> getAllConnectedUsers() {
+        return sessionUsers.values().stream()
+                .distinct()
+                .toList();
     }
 
     /**

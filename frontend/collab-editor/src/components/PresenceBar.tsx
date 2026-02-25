@@ -1,8 +1,9 @@
 import React from 'react';
 import CollaboratorBadge from './CollaboratorBadge';
+import type { ConnectedUser } from '../types/document.types';
 
 interface PresenceBarProps {
-  connectedUsers: string[];
+  connectedUsers: ConnectedUser[];
 }
 
 const PresenceBar: React.FC<PresenceBarProps> = ({ connectedUsers }) => {
@@ -17,8 +18,8 @@ const PresenceBar: React.FC<PresenceBarProps> = ({ connectedUsers }) => {
           {connectedUsers.length} {connectedUsers.length === 1 ? 'person' : 'people'} editing
         </span>
         <div className="flex items-center space-x-3">
-          {connectedUsers.map((username) => (
-            <CollaboratorBadge key={username} username={username} />
+          {connectedUsers.map((user) => (
+            <CollaboratorBadge key={user.userId} username={user.username} color={user.color} />
           ))}
         </div>
       </div>
