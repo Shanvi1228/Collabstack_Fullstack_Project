@@ -14,7 +14,6 @@
 
 ## 📸 Demo
 
-> 🎥 Demo video / GIF coming soon — replace this section with your recording
 
 <!-- Once you have a demo GIF, replace this comment with:
 ![Demo](./demo/demo.gif)
