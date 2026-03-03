@@ -35,3 +35,7 @@ errors.log
 storage-node/data/
 postgres-data/
 data/
+
+.github/instructions.md
+.github/prompts.md
+.github/copilot-instructions.md
