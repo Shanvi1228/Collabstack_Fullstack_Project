@@ -69,8 +69,8 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({ documentId }) => {
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div
               className={`max-w-[80%] rounded-lg px-4 py-2 ${msg.role === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-900'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-900'
                 }`}
             >
               <div className="text-sm prose prose-sm max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1 prose-pre:my-2 prose-code:bg-gray-200 prose-code:px-1 prose-code:rounded">

@@ -32,6 +32,16 @@ public class EmbeddingServiceImpl implements EmbeddingService {
     @Async
     @Transactional
     public void indexDocument(UUID documentId, String fullContent) {
+        doIndexDocument(documentId, fullContent);
+    }
+
+    @Override
+    @Transactional
+    public void indexDocumentSync(UUID documentId, String fullContent) {
+        doIndexDocument(documentId, fullContent);
+    }
+
+    private void doIndexDocument(UUID documentId, String fullContent) {
         if (fullContent == null || fullContent.isBlank()) {
             log.debug("Skipping indexing for document {} — empty content", documentId);
             return;

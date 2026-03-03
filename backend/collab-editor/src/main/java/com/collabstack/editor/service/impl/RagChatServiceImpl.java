@@ -2,8 +2,12 @@ package com.collabstack.editor.service.impl;
 
 import com.collabstack.editor.dto.request.ChatRequest;
 import com.collabstack.editor.dto.response.ChatResponse;
+import com.collabstack.editor.dto.response.DocumentResponse;
 import com.collabstack.editor.service.DocumentService;
+import com.collabstack.editor.service.EmbeddingService;
 import com.collabstack.editor.service.RagChatService;
+import com.collabstack.editor.websocket.CollaborationSessionManager;
+import com.collabstack.editor.websocket.DocumentSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -25,15 +29,19 @@ public class RagChatServiceImpl implements RagChatService {
 
     private final DocumentService documentService;
     private final ChatClient chatClient;
+    private final CollaborationSessionManager sessionManager;
 
     // Optional — only available when app.rag.enabled=true
     @Autowired(required = false)
     private VectorStore vectorStore;
 
+    @Autowired(required = false)
+    private EmbeddingService embeddingService;
+
     @Override
     public ChatResponse chat(UUID documentId, UUID userId, ChatRequest request) {
         // 1. Verify user has access (throws UnauthorizedException if not)
-        documentService.findById(documentId, userId);
+        DocumentResponse docResponse = documentService.findById(documentId, userId);
 
         if (vectorStore == null) {
             return new ChatResponse(
@@ -43,24 +51,34 @@ public class RagChatServiceImpl implements RagChatService {
         }
 
         // 2. Retrieve relevant chunks via similarity search filtered by documentId
-        List<Document> relevantDocs;
-        try {
-            relevantDocs = vectorStore.similaritySearch(
-                    SearchRequest.builder()
-                            .query(request.question())
-                            .topK(6)
-                            .filterExpression("documentId == '" + documentId.toString() + "'")
-                            .build()
-            );
-        } catch (Exception e) {
-            log.error("Vector similarity search failed for document {}: {}", documentId, e.getMessage());
-            return new ChatResponse("Failed to retrieve context from document. Please try again.",
-                    Collections.emptyList());
+        List<Document> relevantDocs = searchDocumentChunks(documentId, request.question());
+
+        // 3. If no indexed content found, auto-index the document and retry
+        if (relevantDocs.isEmpty() && embeddingService != null) {
+            // Prefer live content from active WS session, fall back to DB snapshot
+            String content = null;
+            DocumentSession liveSession = sessionManager.get(documentId);
+            if (liveSession != null) {
+                content = liveSession.getCurrentContent();
+            }
+            if (content == null || content.isBlank()) {
+                content = docResponse.contentSnapshot();
+            }
+            if (content != null && !content.isBlank()) {
+                log.info("No indexed content for document {}. Auto-indexing now...", documentId);
+                try {
+                    embeddingService.indexDocumentSync(documentId, content);
+                    // Retry the search after indexing
+                    relevantDocs = searchDocumentChunks(documentId, request.question());
+                } catch (Exception e) {
+                    log.error("Auto-indexing failed for document {}: {}", documentId, e.getMessage());
+                }
+            }
         }
 
         if (relevantDocs.isEmpty()) {
             return new ChatResponse(
-                    "No indexed content found for this document. Use the /index endpoint to index it first.",
+                    "This document has no content to index yet. Add some content and try again.",
                     Collections.emptyList()
             );
         }
@@ -101,5 +119,23 @@ public class RagChatServiceImpl implements RagChatService {
 
         log.info("RAG chat answered question for document {} using {} chunks", documentId, relevantDocs.size());
         return new ChatResponse(answer, snippets);
+    }
+
+    /**
+     * Performs a similarity search in the vector store filtered by documentId.
+     */
+    private List<Document> searchDocumentChunks(UUID documentId, String query) {
+        try {
+            return vectorStore.similaritySearch(
+                    SearchRequest.builder()
+                            .query(query)
+                            .topK(6)
+                            .filterExpression("documentId == '" + documentId.toString() + "'")
+                            .build()
+            );
+        } catch (Exception e) {
+            log.error("Vector similarity search failed for document {}: {}", documentId, e.getMessage());
+            return Collections.emptyList();
+        }
     }
 }

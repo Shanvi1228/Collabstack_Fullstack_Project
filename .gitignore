@@ -6,6 +6,8 @@ target/
 *.class
 *.jar
 *.war
+*.log
+*.pid
 
 # IDE
 .idea/
@@ -15,7 +17,19 @@ target/
 # Node
 node_modules/
 dist/
+build/
+coverage/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# LOG FILES
+logs/
+*.log
+errors.log
+
+# DOCKER / DATABASE DATA
+storage-node/data/
+postgres-data/
+data/

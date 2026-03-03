@@ -2,8 +2,10 @@ package com.collabstack.editor.websocket;
 
 import com.collabstack.editor.dto.websocket.OperationMessage;
 import com.collabstack.editor.dto.websocket.OperationType;
+
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
