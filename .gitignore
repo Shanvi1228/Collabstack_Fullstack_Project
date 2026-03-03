@@ -1,5 +1,7 @@
 # Environment secrets - never commit
 .env
+.env.local
+.env.*
 
 # Maven
 target/
