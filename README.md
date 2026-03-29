@@ -1,4 +1,4 @@
-# 📝 CollabDocs — Real-Time Collaborative Editor with AI
+# 📝 Collabstack — Real-Time Collaborative Editor with AI
 
 > A full-stack Google Docs-inspired collaborative editor with live multi-user editing,
 > rich text formatting, and an AI chatbot powered by RAG — using your document as context.
