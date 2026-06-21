@@ -16,7 +16,7 @@ $env:PGPASSWORD="Bluegreen18@"; psql -U postgres -h localhost
 
 Inside psql:
 ```sql
-CREATE USER collabstack WITH PASSWORD 'Bluegreen18@';
+CREATE USER collabstack WITH PASSWORD 'Your_new_password';
 CREATE DATABASE collabstack_editor OWNER collabstack;
 \c collabstack_editor
 CREATE EXTENSION IF NOT EXISTS vector;
@@ -41,9 +41,9 @@ mvn clean install -pl collab-editor -am -DskipTests
 ```powershell
 cd C:\my_Backend_Project\backend\collab-editor
 
-$env:GEMINI_API_KEY="AIzaSyBhWXgiB7aQC1S0_MoSmDGBCTF88kl3BIA"
-$env:DB_USERNAME="collabstack"
-$env:DB_PASSWORD="Bluegreen18@"
+$env:GEMINI_API_KEY="YOUR_GEMINI_API_KEY_HERE"
+$env:DB_USERNAME="YOUR_DATABASE_USERNAME"
+$env:DB_PASSWORD="YOUR_DATABASE_PASSWORD"
 
 java -jar target/collab-editor-0.0.1-SNAPSHOT.jar
 ```
@@ -96,9 +96,9 @@ Output goes to `frontend/collab-editor/dist/`.
 **Terminal 1 — Backend:**
 ```powershell
 cd C:\my_Backend_Project\backend\collab-editor
-$env:GEMINI_API_KEY="AIzaSyBhWXgiB7aQC1S0_MoSmDGBCTF88kl3BIA"
-$env:DB_USERNAME="collabstack"
-$env:DB_PASSWORD="Bluegreen18@"
+$env:GEMINI_API_KEY="YOUR_GEMINI_API_KEY_HERE"
+$env:DB_USERNAME="YOUR_DATABASE_USERNAME"
+$env:DB_PASSWORD="YOUR_DATABASE_PASSWORD"
 java -jar target/collab-editor-0.0.1-SNAPSHOT.jar
 ```
 
